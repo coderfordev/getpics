@@ -7,9 +7,25 @@ import re
 import os
 import chardet
 import sys
+import time
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
+
+
+def logD(msg):
+	sys.stdout.write(msg)
+	f = open("getpics.log","a+")
+	#print("file save to"+fileName)
+	f.write(msg.encode('utf-8'))
+	f.close()
+	
+def log(msg):
+	prefix="["+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+"]"
+	logtext=prefix+"\t"+msg
+	logD(logtext)
+def logl(msg):
+	log(msg+"\n")
 
 class Spider:
 
@@ -29,7 +45,7 @@ class Spider:
 		return encoding
 		
 	def getUrlContent(self,url):
-		print("getUrlContent url:"+url)
+		#print("getUrlContent url:"+url)
 		request=urllib2.Request(self.urlencode(url))
 		response=urllib2.urlopen(request)
 		page=response.read()
@@ -47,7 +63,7 @@ class Spider:
 		return BreadList
 		
 	def downloadBread(self,breadName):
-		print("downloading bread "+breadName+"...")
+		#print("downloading bread "+breadName+"...")
 		BreadUrl=self.site+'/webProductContent?prdBreedName='+breadName
 		content=self.getUrlContent(BreadUrl)
 		#print content
@@ -60,7 +76,7 @@ class Spider:
 			#print("webProductContentItem["+str(i)+"]:<"+webProductContentItem[0]+"><"+webProductContentItem[1]+"><"+webProductContentItem[2]+">")
 			i+=1
 			self.downloadProductItemToFolder(webProductContentItem,breadName)
-			break
+			#break
 		
 	def downloadProductItemToFolder(self,productItem,folderName):
 		self.mkdir(folderName)
@@ -68,16 +84,15 @@ class Spider:
 		imageUrl=productItem[1]
 		productName=productItem[2]
 		imagePath=folderName+"/"+productName+".jpg"
-		self.saveImg(self.site+imageUrl,imagePath)
-		
+		self.downloadImg(self.site+imageUrl,imagePath)
 		#detail image
 		content=self.getUrlContent(self.site+detailUrl)
 		pattern = re.compile('<p><img src="(.*?upload.*?)"\stitle="',re.S)
 		detailImgs = re.findall(pattern,content)
 		if(len(detailImgs)>0):
-			print("downloading detail image:"+detailImgs[0])
+			#print("downloading detail image:"+detailImgs[0])
 			imagePath=folderName+"/"+productName+"D.jpg"
-			self.saveImg(self.site+detailImgs[0],imagePath)
+			self.downloadImg(self.site+detailImgs[0],imagePath)
 		#self.saveText(content,imagePath+".txt")
 		
 	def mkdir(self,path):
@@ -89,32 +104,36 @@ class Spider:
 		else:
 			return False
 			
-	def saveImg(self,imageURL,fileName):
+	def downloadImg(self,imageURL,fileName):
 		if(os.path.exists(fileName)):
-			print(fileName+" exist already.");
+			logl("[!]存在: "+fileName);
 			return
-		print("downloading "+fileName)
-		u = urllib.urlopen(imageURL)
-		data = u.read()
-		#uipath = unicode(fileName , "utf8")
-		print fileName
-		f = open(fileName,'wb')
-		f.write(data)
-		f.close()
+		try:
+			log("[*]下载: "+fileName+" ...")
+			u = urllib.urlopen(imageURL)
+			data = u.read()
+			#uipath = unicode(fileName , "utf8")
+			#print fileName
+			f = open(fileName,'wb')
+			f.write(data)
+			f.close()
+		except:
+			logD(u"失败\n");
+		else:
+			logD(u"成功\n");
 		
 	def saveText(self,text,fileName):
 		f = open(fileName,"w+")
 		#print("file save to"+fileName)
 		f.write(text.encode('utf-8'))
 
+logl(u"开始");
 spider = Spider()
 breadNameList=spider.getBreadList()
 del breadNameList[0]
 i=0
 for breadName in breadNameList:
 	#print("breadName["+str(i)+"]:<"+breadName+">")
-	if(i>2):
-		break
 	spider.downloadBread(breadName)
 	i+=1
-print("done.")
+logl(u"[.]完成.")
