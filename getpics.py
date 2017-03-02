@@ -6,13 +6,22 @@ import urllib2
 import re
 import os
 import chardet
+import sys
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 class Spider:
 
 	def __init__(self):
 		print("init...")
-		self.siteURL = 'http://www.kifaonline.com.cn/webProductContent'
+		self.site= 'http://www.kifaonline.com.cn'
 
+	def urlencode(self,val):
+		if isinstance(val,unicode):
+			return urllib.quote(str(val),safe='/:?=')
+		return urllib.quote(val,safe='/:?=')
+	
 	def getEncoding(self,data):
 		chardit1 = chardet.detect(data)
 		encoding=chardit1['encoding']
@@ -20,14 +29,15 @@ class Spider:
 		return encoding
 		
 	def getUrlContent(self,url):
-		request=urllib2.Request(url)
+		print("getUrlContent url:"+url)
+		request=urllib2.Request(self.urlencode(url))
 		response=urllib2.urlopen(request)
 		page=response.read()
 		encoding=self.getEncoding(page)
 		return page.decode(encoding)
 	
 	def getBreadList(self):
-		content=self.getUrlContent(self.siteURL)
+		content=self.getUrlContent(self.site+'/webProductContent')
 		#print("content"+content)
 		pattern = re.compile('prdBreedName=(.*?)"',re.S)
 		items = re.findall(pattern,content)
@@ -37,7 +47,10 @@ class Spider:
 		return BreadList
 		
 	def downloadBread(self,breadName):
-		urlprefix='/webProductContent?prdBreedName='
+		print("downloading bread "+breadName+"...")
+		BreadUrl=self.site+'/webProductContent?prdBreedName='+breadName
+		content=self.getUrlContent(BreadUrl)
+		print content
 		
 		
 	def mkdir(self,path):
@@ -68,5 +81,6 @@ breadNameList=spider.getBreadList()
 i=0
 for breadName in breadNameList:
 	print("breadName["+str(i)+"]:<"+breadName+">")
+	spider.downloadBread(breadName)
 	i+=1
 print("done.")
