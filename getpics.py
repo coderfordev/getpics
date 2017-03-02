@@ -25,7 +25,7 @@ class Spider:
 	def getEncoding(self,data):
 		chardit1 = chardet.detect(data)
 		encoding=chardit1['encoding']
-		print("encode:"+encoding)
+		#print("encode:"+encoding)
 		return encoding
 		
 	def getUrlContent(self,url):
@@ -50,37 +50,71 @@ class Spider:
 		print("downloading bread "+breadName+"...")
 		BreadUrl=self.site+'/webProductContent?prdBreedName='+breadName
 		content=self.getUrlContent(BreadUrl)
-		print content
+		#print content
+		#self.saveText(content,breadName+".txt")
+		pattern = re.compile('class="sit-preview"\shref="(.*?)"><img src="(.*?)".*?center">(.*?)</div>',re.S|re.M)
+		webProductContentItems = re.findall(pattern,content)
+		#url,imageUrl,name
+		i=0
+		for webProductContentItem in webProductContentItems:
+			#print("webProductContentItem["+str(i)+"]:<"+webProductContentItem[0]+"><"+webProductContentItem[1]+"><"+webProductContentItem[2]+">")
+			i+=1
+			self.downloadProductItemToFolder(webProductContentItem,breadName)
+			break
 		
+	def downloadProductItemToFolder(self,productItem,folderName):
+		self.mkdir(folderName)
+		detailUrl=productItem[0]
+		imageUrl=productItem[1]
+		productName=productItem[2]
+		imagePath=folderName+"/"+productName+".jpg"
+		self.saveImg(self.site+imageUrl,imagePath)
+		
+		#detail image
+		content=self.getUrlContent(self.site+detailUrl)
+		pattern = re.compile('<p><img src="(.*?upload.*?)"\stitle="',re.S)
+		detailImgs = re.findall(pattern,content)
+		if(len(detailImgs)>0):
+			print("downloading detail image:"+detailImgs[0])
+			imagePath=folderName+"/"+productName+"D.jpg"
+			self.saveImg(self.site+detailImgs[0],imagePath)
+		#self.saveText(content,imagePath+".txt")
 		
 	def mkdir(self,path):
 		path = path.strip()
-		# 判断路径是否存在
-		# 存在	 True
-		# 不存在   False
 		isExists=os.path.exists(path)
-		# 判断结果
 		if not isExists:
-			# 如果不存在则创建目录
-			# 创建目录操作函数
 			os.makedirs(path)
 			return True
 		else:
-			# 如果目录存在则不创建，并提示目录已存在
 			return False
 			
 	def saveImg(self,imageURL,fileName):
+		if(os.path.exists(fileName)):
+			print(fileName+" exist already.");
+			return
+		print("downloading "+fileName)
 		u = urllib.urlopen(imageURL)
 		data = u.read()
-		f = open(fileName, 'wb')
+		#uipath = unicode(fileName , "utf8")
+		print fileName
+		f = open(fileName,'wb')
 		f.write(data)
 		f.close()
+		
+	def saveText(self,text,fileName):
+		f = open(fileName,"w+")
+		#print("file save to"+fileName)
+		f.write(text.encode('utf-8'))
 
 spider = Spider()
 breadNameList=spider.getBreadList()
+del breadNameList[0]
 i=0
 for breadName in breadNameList:
-	print("breadName["+str(i)+"]:<"+breadName+">")
+	#print("breadName["+str(i)+"]:<"+breadName+">")
+	if(i>2):
+		break
 	spider.downloadBread(breadName)
 	i+=1
 print("done.")
