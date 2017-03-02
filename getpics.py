@@ -13,24 +13,24 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 
-def logD(msg):
+def logBase(msg):
 	sys.stdout.write(msg)
 	f = open("getpics.log","a+")
-	#print("file save to"+fileName)
+	#logd("file save to"+fileName)
 	f.write(msg.encode('utf-8'))
 	f.close()
 	
 def log(msg):
 	prefix="["+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+"]"
 	logtext=prefix+"\t"+msg
-	logD(logtext)
+	logBase(logtext)
 def logl(msg):
 	log(msg+"\n")
 
 class Spider:
 
 	def __init__(self):
-		#print("init...")
+		#logd("init...")
 		self.site= 'http://www.kifaonline.com.cn'
 
 	def urlencode(self,val):
@@ -41,11 +41,11 @@ class Spider:
 	def getEncoding(self,data):
 		chardit1 = chardet.detect(data)
 		encoding=chardit1['encoding']
-		#print("encode:"+encoding)
+		#logd("encode:"+encoding)
 		return encoding
 		
 	def getUrlContent(self,url):
-		#print("getUrlContent url:"+url)
+		#logd("getUrlContent url:"+url)
 		request=urllib2.Request(self.urlencode(url))
 		response=urllib2.urlopen(request)
 		page=response.read()
@@ -62,7 +62,7 @@ class Spider:
 	
 	def getBreadList(self):
 		content=self.getUrlContent(self.site+'/webProductContent')
-		#print("content"+content)
+		#logd("content"+content)
 		pattern = re.compile('prdBreedName=(.*?)"',re.S)
 		items = re.findall(pattern,content)
 		BreadList = []
@@ -73,9 +73,9 @@ class Spider:
 	def downloadBread(self,breadName):
 		curPage=1
 		while True:
-			#print("downloading bread "+breadName+"...")
+			#logd("downloading bread "+breadName+"...")
 			content=self.nextPageContent(breadName,curPage)
-			#print content
+			#logd content
 			self.saveText(content,breadName+".txt")
 			pattern = re.compile(u'共(\d*?)页',re.S)
 			pageNums = re.findall(pattern,content)
@@ -83,13 +83,15 @@ class Spider:
 				logl(u"[x]错误: 页数失败")
 				break;
 			if(curPage>int(pageNums[0])):
-				logl("[+]完成: "+breadName+"类 共"+str(curPage-1)+"页")
+				logl("[+]完成: "+breadName+"类 \t\t\t<==============共"+str(curPage-1)+"页")
+				logl("")
 				break;
+			logl("")
+			logl("[+]分类: "+breadName +"\t\t\t<---第"+str(curPage)+"页");
 			self.downloadPage(content)
 			curPage+=1
 		
 	def nextPageContent(self,breadName,cp):
-		logl("[+]分类: "+breadName +" 第"+str(cp)+"页\t\t\t<---");
 		BreadUrl=self.site+'/webProductContent'
 		postdata={'prdBreedName': breadName, 'curPage': cp}
 		return self.postUrlContent(BreadUrl,postdata)
@@ -100,7 +102,7 @@ class Spider:
 		#url,imageUrl,name
 		i=0
 		for webProductContentItem in webProductContentItems:
-			#print("webProductContentItem["+str(i)+"]:<"+webProductContentItem[0]+"><"+webProductContentItem[1]+"><"+webProductContentItem[2]+">")
+			#logd("webProductContentItem["+str(i)+"]:<"+webProductContentItem[0]+"><"+webProductContentItem[1]+"><"+webProductContentItem[2]+">")
 			i+=1
 			self.downloadProductItemToFolder(webProductContentItem,breadName)
 			#break
@@ -117,7 +119,7 @@ class Spider:
 		pattern = re.compile('<p><img src="(.*?upload.*?)"\stitle="',re.S)
 		detailImgs = re.findall(pattern,content)
 		if(len(detailImgs)>0):
-			#print("downloading detail image:"+detailImgs[0])
+			#logd("downloading detail image:"+detailImgs[0])
 			imagePath=folderName+"/"+productName+"D.jpg"
 			self.downloadImg(self.site+detailImgs[0],imagePath)
 		#self.saveText(content,imagePath+".txt")
@@ -140,28 +142,28 @@ class Spider:
 			u = urllib.urlopen(imageURL)
 			data = u.read()
 			#uipath = unicode(fileName , "utf8")
-			#print fileName
+			#logd fileName
 			f = open(fileName,'wb')
 			f.write(data)
 			f.close()
 		except:
-			logD(u"失败\n");
+			logBase(u"失败\n");
 		else:
-			logD(u"成功\n");
+			logBase(u"成功\n");
 		
 	def saveText(self,text,fileName):
 		f = open(fileName,"w+")
-		#print("file save to"+fileName)
+		#logd("file save to"+fileName)
 		f.write(text.encode('utf-8'))
 
-logl(u"========== 开始 getpics v1.0 ==============");
+logl(u"========== 开始 getpics v1.1 ==============");
 logl(u"\tby coderlin for yya ")
 spider = Spider()
 breadNameList=spider.getBreadList()
 del breadNameList[0]
 i=0
 for breadName in breadNameList:
-	#print("breadName["+str(i)+"]:<"+breadName+">")
+	#logd("breadName["+str(i)+"]:<"+breadName+">")
 	spider.downloadBread(breadName)
 	i+=1
 logl(u"[.]完成.")
