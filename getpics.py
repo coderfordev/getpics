@@ -30,7 +30,7 @@ def logl(msg):
 class Spider:
 
 	def __init__(self):
-		print("init...")
+		#print("init...")
 		self.site= 'http://www.kifaonline.com.cn'
 
 	def urlencode(self,val):
@@ -51,6 +51,14 @@ class Spider:
 		page=response.read()
 		encoding=self.getEncoding(page)
 		return page.decode(encoding)
+		
+	def postUrlContent(self,url,postdata):
+		postdata=urllib.urlencode(postdata)
+		request=urllib2.Request(self.urlencode(url),postdata)
+		response=urllib2.urlopen(request)
+		page=response.read()
+		encoding=self.getEncoding(page)
+		return page.decode(encoding)
 	
 	def getBreadList(self):
 		content=self.getUrlContent(self.site+'/webProductContent')
@@ -63,13 +71,32 @@ class Spider:
 		return BreadList
 		
 	def downloadBread(self,breadName):
-		#print("downloading bread "+breadName+"...")
-		BreadUrl=self.site+'/webProductContent?prdBreedName='+breadName
-		content=self.getUrlContent(BreadUrl)
-		#print content
-		#self.saveText(content,breadName+".txt")
+		curPage=1
+		while True:
+			#print("downloading bread "+breadName+"...")
+			content=self.nextPageContent(breadName,curPage)
+			#print content
+			self.saveText(content,breadName+".txt")
+			pattern = re.compile(u'共(\d*?)页',re.S)
+			pageNums = re.findall(pattern,content)
+			if(len(pageNums)<1):
+				logl(u"[x]错误: 页数失败")
+				break;
+			if(curPage>int(pageNums[0])):
+				logl("[+]完成: "+breadName+"类 共"+str(curPage-1)+"页")
+				break;
+			self.downloadPage(content)
+			curPage+=1
+		
+	def nextPageContent(self,breadName,cp):
+		logl("[+]分类: "+breadName +" 第"+str(cp)+"页\t\t\t<---");
+		BreadUrl=self.site+'/webProductContent'
+		postdata={'prdBreedName': breadName, 'curPage': cp}
+		return self.postUrlContent(BreadUrl,postdata)
+		
+	def downloadPage(self,pageContent):
 		pattern = re.compile('class="sit-preview"\shref="(.*?)"><img src="(.*?)".*?center">(.*?)</div>',re.S|re.M)
-		webProductContentItems = re.findall(pattern,content)
+		webProductContentItems = re.findall(pattern,pageContent)
 		#url,imageUrl,name
 		i=0
 		for webProductContentItem in webProductContentItems:
@@ -127,7 +154,8 @@ class Spider:
 		#print("file save to"+fileName)
 		f.write(text.encode('utf-8'))
 
-logl(u"开始");
+logl(u"========== 开始 getpics v1.0 ==============");
+logl(u"\tby coderlin for yya ")
 spider = Spider()
 breadNameList=spider.getBreadList()
 del breadNameList[0]
